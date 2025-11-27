@@ -11,6 +11,7 @@ permissions:
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -28,13 +29,13 @@ jobs:
       run: npm test
       working-directory: app
 
+    # FIXED: cannot use working-directory with "uses"
     - name: Run Snyk Test (Code & Open Source)
-      uses: snyk/actions/node@v2
-      with:
-        command: test
+      run: |
+        cd app
+        snyk test
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      working-directory: app
 
     - name: Build Docker image for container scan
       run: docker build -t snyk-scan-image:latest app
