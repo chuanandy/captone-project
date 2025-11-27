@@ -7,24 +7,29 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write   # required for OIDC
 
 jobs:
   build-push-deploy:
     runs-on: ubuntu-latest
+
     steps:
+    # 1️⃣ Checkout the repo
     - name: Checkout
       uses: actions/checkout@v4
 
+    # 2️⃣ Configure AWS credentials using OIDC
     - name: Configure AWS Credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ap-southeast-1   # Hardcoded region (or use a secret if preferred)
 
+    # 3️⃣ Login to Amazon ECR
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
+    # 4️⃣ Build & Push Docker image
     - name: Build & Push Docker image
       run: |
         IMAGE_TAG=prod-$(date +%s)
@@ -33,13 +38,20 @@ jobs:
         docker push $REPO:$IMAGE_TAG
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
+    # 5️⃣ Update Helm values file with the new image tag
     - name: Update Helm values with image tag
       run: |
         yq eval '.image.tag = strenv(IMAGE_TAG)' -i charts/api/values-production.yaml
 
+    # 6️⃣ Update kubeconfig for EKS cluster
     - name: Update kubeconfig for EKS
-      run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_PROD }} --region ${{ secrets.AWS_REGION }}
+      run: |
+        aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_PROD }} --region ap-southeast-1
 
+    # 7️⃣ Deploy with Helm
     - name: Helm Deploy to production
       run: |
-        helm upgrade --install api-prod charts/api -n production --create-namespace -f charts/api/values-production.yaml
+        helm upgrade --install api-prod charts/api \
+          -n production \
+          --create-namespace \
+          -f charts/api/values-production.yaml
