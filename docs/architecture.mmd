@@ -1,0 +1,18 @@
+%%{init: {'theme': 'base', 'themeVariables': {}}}%%
+flowchart LR
+  subgraph GitHub
+    A[Repo: secure-k8s-node-api-devsecops]
+    B[GitHub Actions]
+  end
+
+  subgraph AWS
+    C[ECR staging/prod]
+    D[EKS staging/prod]
+    E[IAM Role (OIDC)]
+  end
+
+  A --> B
+  B -->|OIDC Assume Role| E
+  B -->|Push Images| C
+  B -->|kubectl/helm| D
+  C --> D

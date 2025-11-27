@@ -1,0 +1,19 @@
+image:
+  repository: <AWS_ACCOUNT>.dkr.ecr.<region>.amazonaws.com/api-staging
+  tag: "staging-{{ .Values.image.tag }}"
+replicaCount: 2
+ingress:
+  enabled: true
+  hosts:
+    - host: staging.example.com
+      paths:
+        - /
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+autoscaling:
+  enabled: false

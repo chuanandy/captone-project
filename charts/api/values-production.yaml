@@ -1,0 +1,22 @@
+image:
+  repository: <AWS_ACCOUNT>.dkr.ecr.<region>.amazonaws.com/api-prod
+  tag: "prod-{{ .Values.image.tag }}"
+replicaCount: 3
+ingress:
+  enabled: true
+  hosts:
+    - host: api.example.com
+      paths:
+        - /
+resources:
+  requests:
+    cpu: 300m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60

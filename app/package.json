@@ -1,0 +1,16 @@
+{
+  "name": "secure-node-api",
+  "version": "1.0.0",
+  "description": "Simple Node.js API for DevSecOps demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node -e \"console.log('no tests configured')\"",
+    "lint": "echo 'lint step (add eslint config if desired)'"
+  },
+  "author": "Your Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

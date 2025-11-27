@@ -1,0 +1,45 @@
+name: CD - Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build & Push Docker image
+      run: |
+        IMAGE_TAG=staging-$(date +%s)
+        REPO=${{ secrets.ECR_URI_STAGING }}
+        docker build -t $REPO:$IMAGE_TAG app
+        docker push $REPO:$IMAGE_TAG
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+    - name: Update Helm values with image tag
+      run: |
+        yq eval '.image.tag = strenv(IMAGE_TAG)' -i charts/api/values-staging.yaml
+
+    - name: Update kubeconfig for EKS
+      run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_STAGING }} --region ${{ secrets.AWS_REGION }}
+
+    - name: Helm Deploy to staging
+      run: |
+        helm upgrade --install api-staging charts/api -n staging --create-namespace -f charts/api/values-staging.yaml

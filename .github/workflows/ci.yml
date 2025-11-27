@@ -1,0 +1,47 @@
+name: CI - Lint, Test, Snyk
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: app
+
+    - name: Run tests
+      run: npm test
+      working-directory: app
+
+    - name: Run Snyk Test (Code & Open Source)
+      uses: snyk/actions/node@v2
+      with:
+        command: test
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      working-directory: app
+
+    - name: Build Docker image for container scan
+      run: docker build -t snyk-scan-image:latest app
+
+    - name: Snyk Container Scan
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: snyk-scan-image:latest
